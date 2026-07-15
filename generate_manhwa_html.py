@@ -239,16 +239,9 @@ def generate_chapter_html(
         .top-nav.hidden {{
             transform: translateY(-100%);
         }}
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-            gap: 10px;
-            flex-wrap: wrap;
-        }}
         
         .chapter-title {{
-            color: #fff;
+            color: #a0a0a0;
             font-size: 1.2em;
             flex: 1;
             min-width: 200px;
@@ -319,10 +312,11 @@ def generate_chapter_html(
         }}
         
         .bottom-spacer {{
-           height: 1000px;
+           height: 2000px;
            display: flex;
-           align-items: center;
+           align-items: flex-start;
            justify-content: center;
+           padding-top: 40px;
            background: linear-gradient(180deg, #000 0%, #1a1a1a 100%);
            border-top: 1px solid #333;
            margin-top: 20px;
