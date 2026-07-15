@@ -189,14 +189,6 @@ def generate_chapter_html(
         image_path = f"../{chapter_folder}/{page}"
         images_html += f'            <img src="{image_path}" alt="Page" class="manga-page">\n'
     
-    # Build bottom spacer with message (only if there's a next chapter)
-    spacer_html = ''
-    if next_chapter:
-       spacer_html = '''            <div class="bottom-spacer">
-               <div class="spacer-message">scroll down to go to next chapter</div>
-           </div>
-'''
-    
     page_count = len(pages)
     next_chapter_file_json = json.dumps(next_chapter_file) if next_chapter_file else "null"
     
@@ -372,11 +364,123 @@ def generate_chapter_html(
                 display: none;
             }}
         }}
+        
+        .swipe-indicator {{
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }}
+        
+        .swipe-indicator.active {{
+            opacity: 1;
+        }}
+        
+        .swipe-arrow {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: rgba(168, 85, 247, 0.3);
+            border: 2px solid rgba(168, 85, 247, 0.6);
+            border-radius: 50%;
+            font-size: 40px;
+            color: rgba(168, 85, 247, 0.8);
+            filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.3));
+            animation: pulse 0.6s ease-in-out infinite;
+        }}
+        
+        @keyframes pulse {{
+            0%, 100% {{
+                opacity: 0.6;
+            }}
+            50% {{
+                opacity: 1;
+            }}
+        }}
+        
+        .swipe-progress-line {{
+            position: fixed;
+            right: 0;
+            top: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(100, 200, 255, 0.8), rgba(100, 150, 255, 0.4));
+            z-index: 1999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }}
+        
+        .swipe-progress-line.active {{
+            opacity: 1;
+        }}
+        
+        .vertical-swipe-indicator {{
+            position: fixed;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }}
+        
+        .vertical-swipe-indicator.active {{
+            opacity: 1;
+        }}
+        
+        .vertical-swipe-arrow {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: rgba(168, 85, 247, 0.3);
+            border: 2px solid rgba(168, 85, 247, 0.6);
+            border-radius: 50%;
+            font-size: 40px;
+            color: rgba(168, 85, 247, 0.8);
+            filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.3));
+            animation: pulse 0.6s ease-in-out infinite;
+        }}
+        
+        .vertical-swipe-progress-line {{
+            position: fixed;
+            left: 50%;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, rgba(100, 200, 255, 0.8), rgba(100, 150, 255, 0.4));
+            z-index: 1999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            transform: translateX(-50%);
+        }}
+        
+        .vertical-swipe-progress-line.active {{
+            opacity: 1;
+        }}
     </style>
 </head>
 <body>
     <div class="progress-bar" id="progress"></div>
     
+    <div class="swipe-indicator" id="swipeIndicator">
+       <div class="swipe-arrow">&#10132;</div>
+    </div>
+    <div class="swipe-progress-line" id="swipeProgressLine"></div>
+    
+    <div class="vertical-swipe-indicator" id="verticalSwipeIndicator">
+       <div class="vertical-swipe-arrow">&#8595;</div>
+    </div>
+    <div class="vertical-swipe-progress-line" id="verticalSwipeProgressLine"></div>
+      
     <div class="top-nav">
         <div class="chapter-title">{chapter_display}</div>
         <div class="nav-buttons">
@@ -388,7 +492,7 @@ def generate_chapter_html(
     </div>
     
     <div class="container" id="container">
-{images_html}{spacer_html}    </div>
+{images_html}    </div>
     
     <div class="bottom-nav">
         {prev_btn}
@@ -404,19 +508,32 @@ def generate_chapter_html(
        const images = document.querySelectorAll('.manga-page');
        const pageCount = {page_count};
        const nextChapterFile = {next_chapter_file_json};
-        
+       const swipeIndicator = document.getElementById('swipeIndicator');
+       const swipeProgressLine = document.getElementById('swipeProgressLine');
+       const verticalSwipeIndicator = document.getElementById('verticalSwipeIndicator');
+       const verticalSwipeProgressLine = document.getElementById('verticalSwipeProgressLine');
+          
        let lastScrollY = 0;
        let lastNavToggleScrollY = 0;
        let imagesLoaded = false;
        let loadedImageCount = 0;
-        
+       let isAtBottomOfPage = false;
+         
+       // Touch gesture tracking
+       let touchStartX = 0;
+       let touchStartY = 0;
+       let touchEndX = 0;
+       let touchEndY = 0;
+       let isHorizontalSwiping = false;
+       let isVerticalSwiping = false;
+         
        // Wait for all images to load before enabling auto-navigation
        function initializeImageLoading() {{
            if (images.length === 0) {{
                imagesLoaded = true;
                return;
            }}
-            
+             
            images.forEach(img => {{
                if (img.complete) {{
                    loadedImageCount++;
@@ -435,19 +552,19 @@ def generate_chapter_html(
                    }});
                }}
            }});
-            
+             
            if (loadedImageCount === images.length) {{
                imagesLoaded = true;
            }}
        }}
-        
+         
        // Update progress bar and page counter
        function updateProgress() {{
            const scrollTop = window.scrollY;
            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
            const scrollPercent = docHeight ? (scrollTop / docHeight) * 100 : 0;
            progressBar.style.width = scrollPercent + '%';
-            
+             
            // Find current page based on scroll position
            let currentPage = 1;
            images.forEach((img, index) => {{
@@ -457,11 +574,11 @@ def generate_chapter_html(
                }}
            }});
            currentPageSpan.textContent = currentPage;
-            
+             
            // Hide/show toolbar based on scroll direction and distance
            const scrollDelta = scrollTop - lastScrollY;
            const distanceFromLastToggle = Math.abs(scrollTop - lastNavToggleScrollY);
-            
+             
            if (scrollDelta > 0 && scrollTop > 400 && distanceFromLastToggle > 100) {{
                // Scrolling down and past threshold
                topNav.classList.add('hidden');
@@ -471,16 +588,153 @@ def generate_chapter_html(
                topNav.classList.remove('hidden');
                lastNavToggleScrollY = scrollTop;
            }}
-            
+             
            lastScrollY = scrollTop;
-            
-           // Auto-navigate to next chapter if scrolled 300px past the end (only after images load)
+              
+           // Check if at bottom of page
            if (imagesLoaded && nextChapterFile && scrollTop > docHeight - 300) {{
-               window.location.href = nextChapterFile;
+               isAtBottomOfPage = true;
+           }} else {{
+               isAtBottomOfPage = false;
            }}
        }}
         
-       // Keyboard navigation
+       // Update horizontal swipe indicator position
+       function updateSwipeIndicator(currentX) {{
+           if (!isHorizontalSwiping || !nextChapterFile) return;
+            
+           const screenWidth = window.innerWidth;
+           const distanceFromRight = screenWidth - currentX;
+           const minDragDistance = screenWidth * 0.25;
+           const middleOfScreen = screenWidth * 0.5;
+            
+           // Don't show indicator until dragged at least 25%
+           if (distanceFromRight < minDragDistance) {{
+               swipeIndicator.classList.remove('active');
+               swipeProgressLine.classList.remove('active');
+               return;
+           }}
+            
+           swipeIndicator.classList.add('active');
+           swipeProgressLine.classList.add('active');
+            
+           // Position arrow based on distance pulled
+           const arrowDistance = (screenWidth - currentX) * 0.5;
+           swipeIndicator.style.right = arrowDistance + 'px';
+            
+           // Color and scale based on threshold
+           const arrow = swipeIndicator.querySelector('.swipe-arrow');
+           if (distanceFromRight > middleOfScreen) {{
+               // Haven't reached middle yet - purple/ready state
+               arrow.style.background = 'rgba(168, 85, 247, 0.3)';
+               arrow.style.borderColor = 'rgba(168, 85, 247, 0.6)';
+               arrow.style.color = 'rgba(168, 85, 247, 0.8)';
+               arrow.style.filter = 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.3))';
+               arrow.style.boxShadow = 'none';
+           }} else {{
+               // Reached middle - green/caution state
+               arrow.style.background = 'rgba(34, 197, 94, 0.4)';
+               arrow.style.borderColor = 'rgba(34, 197, 94, 0.8)';
+               arrow.style.color = '#22c55e';
+               arrow.style.filter = 'drop-shadow(0 0 12px rgba(34, 197, 94, 0.8))';
+               arrow.style.boxShadow = 'inset 0 0 12px rgba(34, 197, 94, 0.3)';
+           }}
+            
+           // Update progress line width
+           const lineWidth = Math.min(screenWidth * 0.5, (screenWidth - currentX) * 0.5);
+           swipeProgressLine.style.width = lineWidth + 'px';
+       }}
+        
+       // Handle horizontal swipe release
+       function handleSwipeRelease(currentX) {{
+           if (!isHorizontalSwiping || !nextChapterFile) return;
+             
+           const screenWidth = window.innerWidth;
+           const distanceFromRight = screenWidth - currentX;
+           const minDragDistance = screenWidth * 0.25;
+           const middleOfScreen = screenWidth * 0.5;
+             
+           // Clear indicator
+           swipeIndicator.classList.remove('active');
+           swipeProgressLine.classList.remove('active');
+           isHorizontalSwiping = false;
+             
+           // Navigate if released while purple (between 25% and 50% drag)
+           if (distanceFromRight >= minDragDistance && distanceFromRight > middleOfScreen) {{
+               // Use same navigation method as scroll-to-bottom for consistency
+               setTimeout(() => {{
+                   window.location.href = nextChapterFile;
+               }}, 0);
+           }}
+       }}
+          
+       // Update vertical swipe indicator position
+       function updateVerticalSwipeIndicator(currentY) {{
+           if (!isVerticalSwiping || !nextChapterFile || !isAtBottomOfPage) return;
+            
+           const screenHeight = window.innerHeight;
+           const distanceFromBottom = screenHeight - currentY;
+           const minDragDistance = screenHeight * 0.25;
+           const middleOfScreen = screenHeight * 0.5;
+            
+           // Don't show indicator until dragged at least 25%
+           if (distanceFromBottom < minDragDistance) {{
+               verticalSwipeIndicator.classList.remove('active');
+               verticalSwipeProgressLine.classList.remove('active');
+               return;
+           }}
+            
+           verticalSwipeIndicator.classList.add('active');
+           verticalSwipeProgressLine.classList.add('active');
+            
+           // Position arrow based on distance pulled
+           const arrowDistance = (screenHeight - currentY) * 0.5;
+           verticalSwipeIndicator.style.bottom = arrowDistance + 'px';
+            
+           // Color and scale based on threshold
+           const arrow = verticalSwipeIndicator.querySelector('.vertical-swipe-arrow');
+           if (distanceFromBottom > middleOfScreen) {{
+               // Haven't reached middle yet - purple/ready state
+               arrow.style.background = 'rgba(168, 85, 247, 0.3)';
+               arrow.style.borderColor = 'rgba(168, 85, 247, 0.6)';
+               arrow.style.color = 'rgba(168, 85, 247, 0.8)';
+               arrow.style.filter = 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.3))';
+               arrow.style.boxShadow = 'none';
+           }} else {{
+               // Reached middle - green/caution state
+               arrow.style.background = 'rgba(34, 197, 94, 0.4)';
+               arrow.style.borderColor = 'rgba(34, 197, 94, 0.8)';
+               arrow.style.color = '#22c55e';
+               arrow.style.filter = 'drop-shadow(0 0 12px rgba(34, 197, 94, 0.8))';
+               arrow.style.boxShadow = 'inset 0 0 12px rgba(34, 197, 94, 0.3)';
+           }}
+            
+           // Update progress line height
+           const lineHeight = Math.min(screenHeight * 0.5, (screenHeight - currentY) * 0.5);
+           verticalSwipeProgressLine.style.height = lineHeight + 'px';
+       }}
+        
+       // Handle vertical swipe release
+       function handleVerticalSwipeRelease(currentY) {{
+           if (!isVerticalSwiping || !nextChapterFile || !isAtBottomOfPage) return;
+             
+           const screenHeight = window.innerHeight;
+           const distanceFromBottom = screenHeight - currentY;
+           const minDragDistance = screenHeight * 0.25;
+           const middleOfScreen = screenHeight * 0.5;
+             
+           // Clear indicator
+           verticalSwipeIndicator.classList.remove('active');
+           verticalSwipeProgressLine.classList.remove('active');
+           isVerticalSwiping = false;
+             
+           // Navigate if released while purple (between 25% and 50% drag)
+           if (distanceFromBottom >= minDragDistance && distanceFromBottom > middleOfScreen) {{
+               setTimeout(() => {{
+                   window.location.href = nextChapterFile;
+               }}, 0);
+           }}
+       }}
        document.addEventListener('keydown', (e) => {{
            if (e.key === 'ArrowRight' || e.key === ' ') {{
                e.preventDefault();
@@ -489,14 +743,57 @@ def generate_chapter_html(
                 e.preventDefault();
                 window.scrollBy(0, -window.innerHeight * 0.8);
             }}
-        }});
-        
+       }});
+         
+       // Touch event listeners for swipe detection
+       document.addEventListener('touchstart', (e) => {{
+           touchStartX = e.changedTouches[0].screenX;
+           touchStartY = e.changedTouches[0].screenY;
+             
+           const screenWidth = window.innerWidth;
+           const screenHeight = window.innerHeight;
+           const distanceFromRight = screenWidth - touchStartX;
+           const distanceFromBottom = screenHeight - touchStartY;
+            
+           // Horizontal swipe: only start if touch begins in rightmost 12%
+           if (distanceFromRight < screenWidth * 0.12 && nextChapterFile) {{
+               isHorizontalSwiping = true;
+           }}
+            
+           // Vertical swipe: only start if at bottom of page and touch is in bottom 12%
+           if (distanceFromBottom < screenHeight * 0.12 && isAtBottomOfPage && nextChapterFile) {{
+               isVerticalSwiping = true;
+           }}
+       }}, false);
+         
+       document.addEventListener('touchmove', (e) => {{
+           if (isHorizontalSwiping) {{
+               const currentX = e.changedTouches[0].screenX;
+               updateSwipeIndicator(currentX);
+           }}
+           if (isVerticalSwiping) {{
+               const currentY = e.changedTouches[0].screenY;
+               updateVerticalSwipeIndicator(currentY);
+           }}
+       }}, false);
+         
+       document.addEventListener('touchend', (e) => {{
+           if (isHorizontalSwiping) {{
+               const currentX = e.changedTouches[0].screenX;
+               handleSwipeRelease(currentX);
+           }}
+           if (isVerticalSwiping) {{
+               const currentY = e.changedTouches[0].screenY;
+               handleVerticalSwipeRelease(currentY);
+           }}
+       }}, false);
+          
         window.addEventListener('scroll', updateProgress);
         window.addEventListener('resize', updateProgress);
-        
+         
         // Initialize image loading tracking
         initializeImageLoading();
-        
+         
         // Initial update
         updateProgress();
     </script>
