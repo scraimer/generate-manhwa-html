@@ -72,10 +72,14 @@ html_output/
 ├── index.html                          # Table of Contents
 ├── chapter_Chapter_001_Name.html       # Chapter 1 reader
 ├── chapter_Chapter_002_Name.html       # Chapter 2 reader
-└── ... (one file per chapter)
+├── assets/                             # Static CSS/JS files
+│   ├── style-toc.css                   # TOC styling
+│   ├── style-chapter.css               # Chapter reader styling
+│   └── script-chapter.js               # Chapter reader functionality
+└── ... (one chapter HTML file per chapter)
 ```
 
-The chapter HTML files use relative paths to reference images in the original chapter folders, so the directory structure must be preserved:
+The chapter HTML files use relative paths to reference images in the original chapter folders, so the directory structure must be preserved. The static assets (CSS and JavaScript) are copied to the `assets/` subdirectory during generation.
 
 ```
 Your Manga Folder/
@@ -88,6 +92,10 @@ Your Manga Folder/
 └── html_output/                        # Generated HTML files
     ├── index.html
     ├── chapter_Chapter_001_Name.html
+    ├── assets/                         # Static assets (auto-copied)
+    │   ├── style-toc.css
+    │   ├── style-chapter.css
+    │   └── script-chapter.js
     └── ...
 ```
 
@@ -131,17 +139,26 @@ The script automatically:
 
 ## Customization
 
-To customize the appearance, edit the CSS section in the generated HTML files:
+To customize the appearance, edit the CSS files in the `assets/` directory:
 
-- **Colors**: Modify the dark theme colors in the `<style>` section
-- **Fonts**: Change `font-family` in CSS
-- **Navigation Position**: Adjust `.top-nav` and `.bottom-nav` styling
+- **TOC Styling**: Edit `assets/style-toc.css` for the table of contents appearance
+- **Chapter Reader Styling**: Edit `assets/style-chapter.css` for the reader page appearance
+- **Colors**: Modify color values in the CSS files
+- **Fonts**: Change `font-family` declarations in CSS
+- **Navigation**: Adjust `.nav-btn`, `.top-nav`, and `.bottom-nav` styling
 - **Progress Bar**: Edit `.progress-bar` color/height
+
+Changes to the CSS files will automatically apply to all chapters. The JavaScript functionality is in `assets/script-chapter.js` and handles:
+- Scroll tracking and page counter updates
+- Keyboard navigation
+- Touch/swipe gestures
+- Navigation bar auto-hide on scroll
 
 ## Performance Notes
 
-- Large chapters (100+ pages) generate slightly larger HTML files (~12-15KB per chapter)
-- All HTML files are self-contained and reference images by relative path
+- Large chapters (100+ pages) generate smaller HTML files (~2-3KB per chapter) since CSS and JavaScript are external
+- Static assets (CSS/JS) are shared across all chapters - only copied once per generation
+- All HTML files reference external assets via relative paths - no embedded code
 - No server required - open files directly in browser
 - Works offline after generation
 

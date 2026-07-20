@@ -7,6 +7,7 @@ Creates a TOC page and individual chapter pages with full-screen vertical scroll
 import os
 import re
 import sys
+import shutil
 from pathlib import Path
 from typing import List, Tuple, Optional
 import json
@@ -67,69 +68,7 @@ def generate_toc_html(chapters: List[Tuple[str, str, str]], output_dir: str) -> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Table of Contents</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
-            color: #fff;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 40px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        
-        .chapters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        
-        .chapter-link {
-            display: block;
-            padding: 20px;
-            background: rgba(255,255,255,0.05);
-            border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            text-decoration: none;
-            color: #fff;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .chapter-link:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-        
-        .chapter-link h3 {
-            font-size: 1.1em;
-            margin-bottom: 5px;
-        }
-        
-        .chapter-link p {
-            font-size: 0.9em;
-            opacity: 0.7;
-        }
-    </style>
+    <link rel="stylesheet" href="assets/style-toc.css">
 </head>
 <body>
     <div class="container">
@@ -198,275 +137,7 @@ def generate_chapter_html(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{story_name} - {chapter_num}</title>
-    <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-        
-        body {{
-            background: #000;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-        }}
-        
-        .top-nav {{
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-            gap: 10px;
-            flex-wrap: wrap;
-            transition: transform 0.3s ease;
-            transform: translateY(0);
-        }}
-        
-        .top-nav.hidden {{
-            transform: translateY(-100%);
-        }}
-        
-        .chapter-title {{
-            color: #a0a0a0;
-            font-size: 1.2em;
-            flex: 1;
-            min-width: 200px;
-        }}
-        
-        .nav-buttons {{
-            display: flex;
-            gap: 10px;
-        }}
-        
-        .nav-btn {{
-            padding: 8px 16px;
-            background: #333;
-            color: #fff;
-            border: 1px solid #555;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 0.9em;
-            white-space: nowrap;
-        }}
-        
-        .nav-btn:hover:not(:disabled) {{
-            background: #555;
-            border-color: #777;
-        }}
-        
-        .nav-btn:disabled {{
-            opacity: 0.5;
-            cursor: not-allowed;
-        }}
-        
-        .toc-btn {{
-            background: #1e5a7d;
-        }}
-        
-        .toc-btn:hover {{
-            background: #2d7fa6;
-        }}
-        
-        .page-counter {{
-            color: #aaa;
-            font-size: 0.9em;
-            padding: 8px 12px;
-            background: #222;
-            border-radius: 4px;
-            min-width: 60px;
-            text-align: center;
-        }}
-        
-        .container {{
-            margin-top: 60px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            max-width: 100%;
-        }}
-        
-        .manga-page {{
-            display: block;
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            margin: 0;
-            padding: 0;
-        }}
-        
-        .bottom-spacer {{
-           height: 2000px;
-           display: flex;
-           align-items: flex-start;
-           justify-content: center;
-           padding-top: 40px;
-           background: linear-gradient(180deg, #000 0%, #1a1a1a 100%);
-           border-top: 1px solid #333;
-           margin-top: 20px;
-        }}
-        
-        .spacer-message {{
-           font-size: 1.3em;
-           color: #888;
-           text-align: center;
-           font-style: italic;
-        }}
-        
-        .bottom-nav {{
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            z-index: 1000;
-            flex-wrap: wrap;
-        }}
-        
-        .progress-bar {{
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 3px;
-            background: #ff6b6b;
-            z-index: 999;
-            transition: width 0.3s ease;
-        }}
-        
-        @media (max-width: 768px) {{
-            .top-nav {{
-                flex-direction: column;
-                gap: 8px;
-            }}
-            
-            .chapter-title {{
-                font-size: 1em;
-            }}
-            
-            .nav-btn {{
-                padding: 6px 12px;
-                font-size: 0.8em;
-            }}
-            
-            .bottom-nav {{
-                display: none;
-            }}
-        }}
-        
-        .swipe-indicator {{
-            position: fixed;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 2000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }}
-        
-        .swipe-indicator.active {{
-            opacity: 1;
-        }}
-        
-        .swipe-arrow {{
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 80px;
-            height: 80px;
-            background: rgba(168, 85, 247, 0.3);
-            border: 2px solid rgba(168, 85, 247, 0.6);
-            border-radius: 50%;
-            font-size: 40px;
-            color: rgba(168, 85, 247, 0.8);
-            filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.3));
-            animation: pulse 0.6s ease-in-out infinite;
-        }}
-        
-        @keyframes pulse {{
-            0%, 100% {{
-                opacity: 0.6;
-            }}
-            50% {{
-                opacity: 1;
-            }}
-        }}
-        
-        .swipe-progress-line {{
-            position: fixed;
-            right: 0;
-            top: 50%;
-            height: 2px;
-            background: linear-gradient(90deg, rgba(100, 200, 255, 0.8), rgba(100, 150, 255, 0.4));
-            z-index: 1999;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }}
-        
-        .swipe-progress-line.active {{
-            opacity: 1;
-        }}
-        
-        .vertical-swipe-indicator {{
-            position: fixed;
-            left: 50%;
-            bottom: 0;
-            transform: translateX(-50%);
-            z-index: 2000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }}
-        
-        .vertical-swipe-indicator.active {{
-            opacity: 1;
-        }}
-        
-        .vertical-swipe-arrow {{
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 80px;
-            height: 80px;
-            background: rgba(168, 85, 247, 0.3);
-            border: 2px solid rgba(168, 85, 247, 0.6);
-            border-radius: 50%;
-            font-size: 40px;
-            color: rgba(168, 85, 247, 0.8);
-            filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.3));
-            animation: pulse 0.6s ease-in-out infinite;
-        }}
-        
-        .vertical-swipe-progress-line {{
-            position: fixed;
-            left: 50%;
-            bottom: 0;
-            width: 2px;
-            background: linear-gradient(180deg, rgba(100, 200, 255, 0.8), rgba(100, 150, 255, 0.4));
-            z-index: 1999;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            transform: translateX(-50%);
-        }}
-        
-        .vertical-swipe-progress-line.active {{
-            opacity: 1;
-        }}
-    </style>
+    <link rel="stylesheet" href="assets/style-chapter.css">
 </head>
 <body>
     <div class="progress-bar" id="progress"></div>
@@ -501,306 +172,33 @@ def generate_chapter_html(
     </div>
     
     <script>
-        const container = document.getElementById('container');
-        const progressBar = document.getElementById('progress');
-        const currentPageSpan = document.getElementById('current-page');
-       const topNav = document.querySelector('.top-nav');
-       const images = document.querySelectorAll('.manga-page');
-       const pageCount = {page_count};
-       const nextChapterFile = {next_chapter_file_json};
-       const swipeIndicator = document.getElementById('swipeIndicator');
-       const swipeProgressLine = document.getElementById('swipeProgressLine');
-       const verticalSwipeIndicator = document.getElementById('verticalSwipeIndicator');
-       const verticalSwipeProgressLine = document.getElementById('verticalSwipeProgressLine');
-          
-       let lastScrollY = 0;
-       let lastNavToggleScrollY = 0;
-       let imagesLoaded = false;
-       let loadedImageCount = 0;
-       let isAtBottomOfPage = false;
-         
-       // Touch gesture tracking
-       let touchStartX = 0;
-       let touchStartY = 0;
-       let touchEndX = 0;
-       let touchEndY = 0;
-       let isHorizontalSwiping = false;
-       let isVerticalSwiping = false;
-         
-       // Wait for all images to load before enabling auto-navigation
-       function initializeImageLoading() {{
-           if (images.length === 0) {{
-               imagesLoaded = true;
-               return;
-           }}
-             
-           images.forEach(img => {{
-               if (img.complete) {{
-                   loadedImageCount++;
-               }} else {{
-                   img.addEventListener('load', () => {{
-                       loadedImageCount++;
-                       if (loadedImageCount === images.length) {{
-                           imagesLoaded = true;
-                       }}
-                   }});
-                   img.addEventListener('error', () => {{
-                       loadedImageCount++;
-                       if (loadedImageCount === images.length) {{
-                           imagesLoaded = true;
-                       }}
-                   }});
-               }}
-           }});
-             
-           if (loadedImageCount === images.length) {{
-               imagesLoaded = true;
-           }}
-       }}
-         
-       // Update progress bar and page counter
-       function updateProgress() {{
-           const scrollTop = window.scrollY;
-           const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-           const scrollPercent = docHeight ? (scrollTop / docHeight) * 100 : 0;
-           progressBar.style.width = scrollPercent + '%';
-             
-           // Find current page based on scroll position
-           let currentPage = 1;
-           images.forEach((img, index) => {{
-               const rect = img.getBoundingClientRect();
-               if (rect.top < window.innerHeight / 2) {{
-                   currentPage = index + 1;
-               }}
-           }});
-           currentPageSpan.textContent = currentPage;
-             
-           // Hide/show toolbar based on scroll direction and distance
-           const scrollDelta = scrollTop - lastScrollY;
-           const distanceFromLastToggle = Math.abs(scrollTop - lastNavToggleScrollY);
-             
-           if (scrollDelta > 0 && scrollTop > 400 && distanceFromLastToggle > 100) {{
-               // Scrolling down and past threshold
-               topNav.classList.add('hidden');
-               lastNavToggleScrollY = scrollTop;
-           }} else if (scrollDelta < 0 && distanceFromLastToggle > 100) {{
-               // Scrolling up
-               topNav.classList.remove('hidden');
-               lastNavToggleScrollY = scrollTop;
-           }}
-             
-           lastScrollY = scrollTop;
-              
-           // Check if at bottom of page
-           if (imagesLoaded && nextChapterFile && scrollTop > docHeight - 300) {{
-               isAtBottomOfPage = true;
-           }} else {{
-               isAtBottomOfPage = false;
-           }}
-       }}
-        
-       // Update horizontal swipe indicator position
-       function updateSwipeIndicator(currentX) {{
-           if (!isHorizontalSwiping || !nextChapterFile) return;
-            
-           const screenWidth = window.innerWidth;
-           const distanceFromRight = screenWidth - currentX;
-           const minDragDistance = screenWidth * 0.25;
-           const middleOfScreen = screenWidth * 0.5;
-            
-           // Don't show indicator until dragged at least 25%
-           if (distanceFromRight < minDragDistance) {{
-               swipeIndicator.classList.remove('active');
-               swipeProgressLine.classList.remove('active');
-               return;
-           }}
-            
-           swipeIndicator.classList.add('active');
-           swipeProgressLine.classList.add('active');
-            
-           // Position arrow based on distance pulled
-           const arrowDistance = (screenWidth - currentX) * 0.5;
-           swipeIndicator.style.right = arrowDistance + 'px';
-            
-           // Color and scale based on threshold
-           const arrow = swipeIndicator.querySelector('.swipe-arrow');
-           if (distanceFromRight > middleOfScreen) {{
-               // Haven't reached middle yet - purple/ready state
-               arrow.style.background = 'rgba(168, 85, 247, 0.3)';
-               arrow.style.borderColor = 'rgba(168, 85, 247, 0.6)';
-               arrow.style.color = 'rgba(168, 85, 247, 0.8)';
-               arrow.style.filter = 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.3))';
-               arrow.style.boxShadow = 'none';
-           }} else {{
-               // Reached middle - green/caution state
-               arrow.style.background = 'rgba(34, 197, 94, 0.4)';
-               arrow.style.borderColor = 'rgba(34, 197, 94, 0.8)';
-               arrow.style.color = '#22c55e';
-               arrow.style.filter = 'drop-shadow(0 0 12px rgba(34, 197, 94, 0.8))';
-               arrow.style.boxShadow = 'inset 0 0 12px rgba(34, 197, 94, 0.3)';
-           }}
-            
-           // Update progress line width
-           const lineWidth = Math.min(screenWidth * 0.5, (screenWidth - currentX) * 0.5);
-           swipeProgressLine.style.width = lineWidth + 'px';
-       }}
-        
-       // Handle horizontal swipe release
-       function handleSwipeRelease(currentX) {{
-           if (!isHorizontalSwiping || !nextChapterFile) return;
-             
-           const screenWidth = window.innerWidth;
-           const distanceFromRight = screenWidth - currentX;
-           const minDragDistance = screenWidth * 0.25;
-           const middleOfScreen = screenWidth * 0.5;
-             
-           // Clear indicator
-           swipeIndicator.classList.remove('active');
-           swipeProgressLine.classList.remove('active');
-           isHorizontalSwiping = false;
-             
-           // Navigate if released while purple (between 25% and 50% drag)
-           if (distanceFromRight >= minDragDistance && distanceFromRight > middleOfScreen) {{
-               // Use same navigation method as scroll-to-bottom for consistency
-               setTimeout(() => {{
-                   window.location.href = nextChapterFile;
-               }}, 0);
-           }}
-       }}
-          
-       // Update vertical swipe indicator position
-       function updateVerticalSwipeIndicator(currentY) {{
-           if (!isVerticalSwiping || !nextChapterFile || !isAtBottomOfPage) return;
-            
-           const screenHeight = window.innerHeight;
-           const distanceFromBottom = screenHeight - currentY;
-           const minDragDistance = screenHeight * 0.25;
-           const middleOfScreen = screenHeight * 0.5;
-            
-           // Don't show indicator until dragged at least 25%
-           if (distanceFromBottom < minDragDistance) {{
-               verticalSwipeIndicator.classList.remove('active');
-               verticalSwipeProgressLine.classList.remove('active');
-               return;
-           }}
-            
-           verticalSwipeIndicator.classList.add('active');
-           verticalSwipeProgressLine.classList.add('active');
-            
-           // Position arrow based on distance pulled
-           const arrowDistance = (screenHeight - currentY) * 0.5;
-           verticalSwipeIndicator.style.bottom = arrowDistance + 'px';
-            
-           // Color and scale based on threshold
-           const arrow = verticalSwipeIndicator.querySelector('.vertical-swipe-arrow');
-           if (distanceFromBottom > middleOfScreen) {{
-               // Haven't reached middle yet - purple/ready state
-               arrow.style.background = 'rgba(168, 85, 247, 0.3)';
-               arrow.style.borderColor = 'rgba(168, 85, 247, 0.6)';
-               arrow.style.color = 'rgba(168, 85, 247, 0.8)';
-               arrow.style.filter = 'drop-shadow(0 0 8px rgba(168, 85, 247, 0.3))';
-               arrow.style.boxShadow = 'none';
-           }} else {{
-               // Reached middle - green/caution state
-               arrow.style.background = 'rgba(34, 197, 94, 0.4)';
-               arrow.style.borderColor = 'rgba(34, 197, 94, 0.8)';
-               arrow.style.color = '#22c55e';
-               arrow.style.filter = 'drop-shadow(0 0 12px rgba(34, 197, 94, 0.8))';
-               arrow.style.boxShadow = 'inset 0 0 12px rgba(34, 197, 94, 0.3)';
-           }}
-            
-           // Update progress line height
-           const lineHeight = Math.min(screenHeight * 0.5, (screenHeight - currentY) * 0.5);
-           verticalSwipeProgressLine.style.height = lineHeight + 'px';
-       }}
-        
-       // Handle vertical swipe release
-       function handleVerticalSwipeRelease(currentY) {{
-           if (!isVerticalSwiping || !nextChapterFile || !isAtBottomOfPage) return;
-             
-           const screenHeight = window.innerHeight;
-           const distanceFromBottom = screenHeight - currentY;
-           const minDragDistance = screenHeight * 0.25;
-           const middleOfScreen = screenHeight * 0.5;
-             
-           // Clear indicator
-           verticalSwipeIndicator.classList.remove('active');
-           verticalSwipeProgressLine.classList.remove('active');
-           isVerticalSwiping = false;
-             
-           // Navigate if released while purple (between 25% and 50% drag)
-           if (distanceFromBottom >= minDragDistance && distanceFromBottom > middleOfScreen) {{
-               setTimeout(() => {{
-                   window.location.href = nextChapterFile;
-               }}, 0);
-           }}
-       }}
-       document.addEventListener('keydown', (e) => {{
-           if (e.key === 'ArrowRight' || e.key === ' ') {{
-               e.preventDefault();
-               window.scrollBy(0, window.innerHeight * 0.8);
-           }} else if (e.key === 'ArrowLeft') {{
-                e.preventDefault();
-                window.scrollBy(0, -window.innerHeight * 0.8);
-            }}
-       }});
-         
-       // Touch event listeners for swipe detection
-       document.addEventListener('touchstart', (e) => {{
-           touchStartX = e.changedTouches[0].screenX;
-           touchStartY = e.changedTouches[0].screenY;
-             
-           const screenWidth = window.innerWidth;
-           const screenHeight = window.innerHeight;
-           const distanceFromRight = screenWidth - touchStartX;
-           const distanceFromBottom = screenHeight - touchStartY;
-            
-           // Horizontal swipe: only start if touch begins in rightmost 12%
-           if (distanceFromRight < screenWidth * 0.12 && nextChapterFile) {{
-               isHorizontalSwiping = true;
-           }}
-            
-           // Vertical swipe: only start if at bottom of page and touch is in bottom 30%
-           if (distanceFromBottom < screenHeight * 0.30 && isAtBottomOfPage && nextChapterFile) {{
-               isVerticalSwiping = true;
-           }}
-       }}, false);
-         
-       document.addEventListener('touchmove', (e) => {{
-           if (isHorizontalSwiping) {{
-               const currentX = e.changedTouches[0].screenX;
-               updateSwipeIndicator(currentX);
-           }}
-           if (isVerticalSwiping) {{
-               const currentY = e.changedTouches[0].screenY;
-               updateVerticalSwipeIndicator(currentY);
-           }}
-       }}, false);
-         
-       document.addEventListener('touchend', (e) => {{
-           if (isHorizontalSwiping) {{
-               const currentX = e.changedTouches[0].screenX;
-               handleSwipeRelease(currentX);
-           }}
-           if (isVerticalSwiping) {{
-               const currentY = e.changedTouches[0].screenY;
-               handleVerticalSwipeRelease(currentY);
-           }}
-       }}, false);
-          
-        window.addEventListener('scroll', updateProgress);
-        window.addEventListener('resize', updateProgress);
-         
-        // Initialize image loading tracking
-        initializeImageLoading();
-         
-        // Initial update
-        updateProgress();
+        window.PAGE_COUNT = {page_count};
+        window.NEXT_CHAPTER_FILE = {next_chapter_file_json};
     </script>
+    <script src="assets/script-chapter.js"></script>
 </body>
 </html>'''
     
     return html
+
+
+def copy_assets(output_dir: str) -> None:
+    """Copy static assets to the output directory."""
+    assets_dir = Path(__file__).parent / 'assets'
+    output_assets_dir = Path(output_dir) / 'assets'
+    
+    if not assets_dir.exists():
+        print("⚠ Warning: assets directory not found, skipping asset copy")
+        return
+    
+    output_assets_dir.mkdir(exist_ok=True)
+    
+    # Copy all files from assets directory
+    for asset_file in assets_dir.iterdir():
+        if asset_file.is_file():
+            shutil.copy2(asset_file, output_assets_dir / asset_file.name)
+    
+    print("✓ Assets copied to output directory")
 
 
 def generate_all_html(base_path: str, output_dir: Optional[str] = None) -> None:
@@ -828,6 +226,11 @@ def generate_all_html(base_path: str, output_dir: Optional[str] = None) -> None:
         sys.exit(1)
     
     print(f"✅ Found {len(chapters)} chapters\n")
+    
+    # Copy assets first
+    print("📦 Copying assets...")
+    copy_assets(output_dir)
+    print()
     
     # Generate TOC
     print("📖 Generating Table of Contents...")
