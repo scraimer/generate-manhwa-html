@@ -760,8 +760,8 @@ def generate_chapter_html(
                isHorizontalSwiping = true;
            }}
             
-           // Vertical swipe: only start if at bottom of page and touch is in bottom 12%
-           if (distanceFromBottom < screenHeight * 0.12 && isAtBottomOfPage && nextChapterFile) {{
+           // Vertical swipe: only start if at bottom of page and touch is in bottom 30%
+           if (distanceFromBottom < screenHeight * 0.30 && isAtBottomOfPage && nextChapterFile) {{
                isVerticalSwiping = true;
            }}
        }}, false);
