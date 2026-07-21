@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 from typing import List, Tuple, Optional
 import json
+from urllib.parse import quote
 
 
 def parse_chapter_number(folder_name: str) -> Tuple[float, str]:
@@ -124,9 +125,29 @@ def generate_chapter_html(
     
     # Build image container - reference images relative to the parent directory
     images_html = ''
-    for page in pages:
-        image_path = f"../{chapter_folder}/{page}"
-        images_html += f'            <img src="{image_path}" alt="Page" class="manga-page">\n'
+    encoded_chapter_folder = quote(chapter_folder, safe='')
+    first_chunk_end = (len(pages) + 2) // 3
+    second_chunk_end = ((len(pages) * 2) + 2) // 3
+    for index, page in enumerate(pages):
+        encoded_page = quote(page, safe='')
+        image_path = f"../{encoded_chapter_folder}/{encoded_page}"
+        if index < first_chunk_end:
+            chunk = 1
+        elif index < second_chunk_end:
+            chunk = 2
+        else:
+            chunk = 3
+
+        if chunk == 1:
+            images_html += (
+                f'            <img src="{image_path}" alt="Page" class="manga-page" '
+                f'data-chunk="{chunk}">\n'
+            )
+        else:
+            images_html += (
+                f'            <img data-src="{image_path}" alt="Page" class="manga-page deferred-page" '
+                f'data-chunk="{chunk}">\n'
+            )
     
     page_count = len(pages)
     next_chapter_file_json = json.dumps(next_chapter_file) if next_chapter_file else "null"

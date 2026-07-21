@@ -13,7 +13,6 @@ const verticalSwipeProgressLine = document.getElementById('verticalSwipeProgress
 let lastScrollY = 0;
 let lastNavToggleScrollY = 0;
 let imagesLoaded = false;
-let loadedImageCount = 0;
 let isAtBottomOfPage = false;
 
 // Touch gesture tracking
@@ -24,35 +23,69 @@ let touchEndY = 0;
 let isHorizontalSwiping = false;
 let isVerticalSwiping = false;
 
-// Wait for all images to load before enabling auto-navigation
-function initializeImageLoading() {
+function getChunkImages(chunkNumber) {
+    return Array.from(images).filter((img) => Number(img.dataset.chunk) === chunkNumber);
+}
+
+function activateChunk(chunkImages) {
+    chunkImages.forEach((img) => {
+        const deferredSrc = img.getAttribute('data-src');
+        if (deferredSrc) {
+            img.classList.remove('deferred-page');
+            img.setAttribute('src', deferredSrc);
+            img.removeAttribute('data-src');
+            img.loading = 'eager';
+            img.decoding = 'async';
+        }
+    });
+}
+
+function waitForChunk(chunkImages) {
+    if (chunkImages.length === 0) {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        let loadedCount = 0;
+        const markLoaded = () => {
+            loadedCount += 1;
+            if (loadedCount === chunkImages.length) {
+                resolve();
+            }
+        };
+
+        chunkImages.forEach((img) => {
+            if (img.complete) {
+                markLoaded();
+                return;
+            }
+
+            img.addEventListener('load', markLoaded, { once: true });
+            img.addEventListener('error', markLoaded, { once: true });
+        });
+    });
+}
+
+async function initializeImageLoading() {
     if (images.length === 0) {
         imagesLoaded = true;
         return;
     }
-    
-    images.forEach(img => {
-        if (img.complete) {
-            loadedImageCount++;
-        } else {
-            img.addEventListener('load', () => {
-                loadedImageCount++;
-                if (loadedImageCount === images.length) {
-                    imagesLoaded = true;
-                }
-            });
-            img.addEventListener('error', () => {
-                loadedImageCount++;
-                if (loadedImageCount === images.length) {
-                    imagesLoaded = true;
-                }
-            });
-        }
-    });
-    
-    if (loadedImageCount === images.length) {
-        imagesLoaded = true;
-    }
+
+    const firstChunk = getChunkImages(1);
+    const secondChunk = getChunkImages(2);
+    const thirdChunk = getChunkImages(3);
+
+    activateChunk(firstChunk);
+    await waitForChunk(firstChunk);
+
+    activateChunk(secondChunk);
+    await waitForChunk(secondChunk);
+
+    activateChunk(thirdChunk);
+    await waitForChunk(thirdChunk);
+
+    imagesLoaded = true;
 }
 
 // Update progress bar and page counter

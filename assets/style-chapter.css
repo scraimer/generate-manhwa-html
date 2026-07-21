@@ -102,6 +102,10 @@ body {
     padding: 0;
 }
 
+.manga-page.deferred-page {
+    display: none;
+}
+
 .bottom-spacer {
    height: 2000px;
    display: flex;
