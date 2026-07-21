@@ -171,10 +171,10 @@ function updateVerticalSwipeIndicator(currentY) {
     
     const screenHeight = window.innerHeight;
     const distanceFromBottom = screenHeight - currentY;
-    const minDragDistance = screenHeight * 0.25;
-    const middleOfScreen = screenHeight * 0.5;
+    const minDragDistance = screenHeight * 0.15;
+    const middleOfScreen = screenHeight * 0.30;
     
-    // Don't show indicator until dragged at least 25%
+    // Don't show indicator until dragged at least 15%
     if (distanceFromBottom < minDragDistance) {
         verticalSwipeIndicator.classList.remove('active');
         verticalSwipeProgressLine.classList.remove('active');
@@ -185,7 +185,7 @@ function updateVerticalSwipeIndicator(currentY) {
     verticalSwipeProgressLine.classList.add('active');
     
     // Position arrow based on distance pulled
-    const arrowDistance = (screenHeight - currentY) * 0.5;
+    const arrowDistance = (screenHeight - currentY) * 0.30;
     verticalSwipeIndicator.style.bottom = arrowDistance + 'px';
     
     // Color and scale based on threshold
@@ -217,15 +217,15 @@ function handleVerticalSwipeRelease(currentY) {
     
     const screenHeight = window.innerHeight;
     const distanceFromBottom = screenHeight - currentY;
-    const minDragDistance = screenHeight * 0.25;
-    const middleOfScreen = screenHeight * 0.5;
+    const minDragDistance = screenHeight * 0.15;
+    const middleOfScreen = screenHeight * 0.30;
     
     // Clear indicator
     verticalSwipeIndicator.classList.remove('active');
     verticalSwipeProgressLine.classList.remove('active');
     isVerticalSwiping = false;
     
-    // Navigate if released while purple (between 25% and 50% drag)
+    // Navigate if released while purple (between 15% and 30% drag)
     if (distanceFromBottom >= minDragDistance && distanceFromBottom > middleOfScreen) {
         setTimeout(() => {
             window.location.href = nextChapterFile;
